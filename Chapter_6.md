@@ -107,32 +107,32 @@ This structure allows Linux to scale across hardware platforms, from embedded sy
 | Use Case   | High-performance | Lightweight deferred work | Complex/blocking work |
 
 
-## 6.10 Enhanced Hardware Interrupt Lifecycle (Parallel Tracks)
+## 6.9 Enhanced Hardware Interrupt Lifecycle (Parallel Tracks)
 
 ```mermaid
 flowchart LR
     %% Define parallel tracks
-    subgraph Device [Hardware Device]
-        A[Device Event / IRQ]
+    subgraph Device ["Hardware Device"]
+        A["Device Event / IRQ"]
     end
 
-    subgraph CPU [CPU & Top-Half]
-        B[Interrupt Controller (PIC/APIC)]
-        C[CPU Receives Interrupt]
-        D[Save Context & Disable/Mask Interrupts]
-        E[Top-Half Handler (ISR)]
+    subgraph CPU ["CPU & Top-Half"]
+        B["Interrupt Controller (PIC/APIC)"]
+        C["CPU Receives Interrupt"]
+        D["Save Context & Disable/Mask Interrupts"]
+        E["Top-Half Handler (ISR)"]
     end
 
-    subgraph Kernel [Bottom-Half & Subsystems]
-        F[Schedule Bottom-Half]
-        G[Bottom-Half Handler: Soft IRQ / Tasklet / Workqueue]
-        H[Interact with Kernel Subsystems]
-        I[Network Stack / Block Layer / Input Subsystem]
+    subgraph Kernel ["Bottom-Half & Subsystems"]
+        F["Schedule Bottom-Half"]
+        G["Bottom-Half Handler: Soft IRQ / Tasklet / Workqueue"]
+        H["Interact with Kernel Subsystems"]
+        I["Network Stack / Block Layer / Input Subsystem"]
     end
 
-    subgraph Resume [Return to Previous Task]
-        J[Restore CPU Context]
-        K[Resume Interrupted Task]
+    subgraph Resume ["Return to Previous Task"]
+        J["Restore CPU Context"]
+        K["Resume Interrupted Task"]
     end
 
     %% Connections
@@ -146,3 +146,7 @@ flowchart LR
     H --> I
     I --> J
     J --> K
+```
+
+
+

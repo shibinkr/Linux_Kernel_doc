@@ -37,6 +37,52 @@ flowchart TD
                             E --> F[Waits for kthread creation requests]
                                     F --> G[Creates & initializes new kernel threads]
 ```
+```mermaid
+flowchart LR
+    subgraph UserSpace [User Space]
+        A[init (PID 1)]
+        A --> A1[/User processes: shells, daemons, apps/]
+    end
+
+    subgraph KernelSpace [Kernel Space]
+        B[start_kernel()]
+        B --> C[rest_init()]
+        C --> D[kthreadd (PID 2)]
+        D --> E[kthread_create() requests]
+        E --> F[New kernel threads]
+    end
+
+    %% Connect kernel to user space
+    C --> A
+```mermaid
+
+# Code Walkthrough: From `start_kernel()` to kthread Creation
+
+---
+
+## Sequence Diagram (Step-by-Step Flow)
+
+```mermaid
+sequenceDiagram
+    participant CPU
+    participant Kernel
+    participant rest_init
+    participant Init_Process as "init (PID 1)"
+    participant Kthreadd as "kthreadd (PID 2)"
+    participant NewKthread as "new kthread"
+
+    CPU->>Kernel: start_kernel()
+    Kernel->>rest_init: Call rest_init()
+
+    rest_init->>Init_Process: Create init process
+    rest_init->>Kthreadd: Create kthreadd daemon
+
+    Kthreadd->>Kthreadd: Wait for kthread requests
+    Kernel->>Kthreadd: kthread_create() request
+    Kthreadd->>NewKthread: Create & initialize new kthread
+    NewKthread->>NewKthread: Run thread function in kernel space
+```
+
 
 
 ## 5.3 Code Example: Creating a Custom kthread
