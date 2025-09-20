@@ -27,17 +27,36 @@ The `rest_init()` function is responsible for:
 ### 5.2.4 Boot-Time kthread Creation Flow (Diagram)
 
 The following diagram shows how the Linux kernel creates `kthreadd` during boot and how it becomes the parent of all other kernel threads:
-
 ```mermaid
 flowchart TD
-    A[start_kernel()] --> B[rest_init()]
-            B --> C[Start init process (PID 1)]
-            B --> D[Create kthreadd (kernel thread daemon)]
-                    D --> E[kthreadd() function]
-                            E --> F[Waits for kthread creation requests]
-                                    F --> G[Creates & initializes new kernel threads]
+    A["start_kernel()"] --> B["rest_init()"]
+    B --> C["Start init process (PID 1)"]
+    B --> D["Create kthreadd (kernel thread daemon)"]
+    D --> E["kthreadd() function"]
+    E --> F["Waits for kthread creation requests"]
+    F --> G["Creates & initializes new kernel threads"]
 ```
 
+#### Sequence Diagram (Step-by-Step Flow)
+
+```mermaid
+sequenceDiagram
+    participant CPU
+    participant Kernel
+    participant rest_init
+    participant Init_Process as "init (PID 1)"
+    participant Kthreadd as "kthreadd (PID 2)"
+    participant NewKthread as "new kthread"
+
+    CPU->>Kernel: start_kernel()
+    Kernel->>rest_init: Call rest_init()
+    rest_init->>Init_Process: Create init process
+    rest_init->>Kthreadd: Create kthreadd daemon
+    Kthreadd->>Kthreadd: Wait for kthread requests
+    Kernel->>Kthreadd: kthread_create() request
+    Kthreadd->>NewKthread: Create & initialize new kthread
+    NewKthread->>NewKthread: Run thread function in kernel space
+```
 
 ## 5.3 Code Example: Creating a Custom kthread
 Below is a simple Linux kernel module that demonstrates how to create and stop a custom kthread.
