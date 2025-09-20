@@ -47,7 +47,6 @@ This initialization happens only once. Afterward, the kernel shifts into a react
 | - Start userland (PID 1)  |
 +---------------------------+
 ```
-
 ## 1.3 Contexts of Kernel Execution  
 
 Kernel execution occurs in three main contexts:  
