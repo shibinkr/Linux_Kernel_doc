@@ -100,11 +100,12 @@ This structure allows Linux to scale across hardware platforms, from embedded sy
 
 ### Key Characteristics of Bottom-Half Mechanisms
 
-| Feature    | Soft IRQ          | Tasklet              | Workqueue                   |
-|------------|-----------------|--------------------|-----------------------------|
-| Context    | Interrupt        | Interrupt           | Process                     |
-| Preemptible| Partially        | No                  | Yes                         |
-| Use Case   | High-performance | Lightweight deferred work | Complex/blocking work |
+| Feature       | Soft IRQ       | Tasklet                      | Workqueue                    |
+|---------------|---------------|------------------------------|-------------------------------|
+| Context       | Interrupt     | Interrupt                    | Process                       |
+| Can Sleep     | ❌            | ❌                            | ✅                             |
+| Preemptible   | Partially     | No                           | Yes                           |
+| Use Case      | High-performance/ High-frequency interrupts | Lightweight deferred tasks | Complex/blocking work /Deferred tasks needing blocking        |
 
 ## 6.9 Hardware Interrupt Lifecycle Diagram
 ```mermaid
@@ -165,3 +166,122 @@ flowchart LR
 
 
 
+## 6.11 Code example for SoftIRQ, Tasklet and Workqueue:
+ - SoftIRQ: Low-level deferred execution, runs in interrupt context, fast, cannot sleep.
+ - Tasklet: Built on top of SoftIRQ, simpler API, still cannot sleep, runs in interrupt context.
+ - Workqueue: Runs in process context, can sleep, used for deferred work that may need blocking operations.
+
+### 1️⃣ SoftIRQ Example
+```c 
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/interrupt.h>
+
+static void my_softirq_handler(struct softirq_action *h)
+{
+    printk(KERN_INFO "SoftIRQ executed\n");
+}
+
+static int __init my_module_init(void)
+{
+    open_softirq(42, my_softirq_handler); // register softirq on vector 42
+    printk(KERN_INFO "SoftIRQ registered\n");
+
+    raise_softirq(42); // trigger it
+    return 0;
+}
+
+static void __exit my_module_exit(void)
+{
+    printk(KERN_INFO "Module exiting\n");
+}
+
+module_init(my_module_init);
+module_exit(my_module_exit);
+MODULE_LICENSE("GPL");
+```
+### 2️⃣ Tasklet Example
+```c
+#include <linux/module.h>
+#include <linux/interrupt.h>
+
+static void my_tasklet_func(unsigned long data);
+
+DECLARE_TASKLET(my_tasklet, my_tasklet_func, 0);
+
+static void my_tasklet_func(unsigned long data)
+{
+    printk(KERN_INFO "Tasklet executed\n");
+}
+
+static int __init my_module_init(void)
+{
+    tasklet_schedule(&my_tasklet); // schedule the tasklet
+    printk(KERN_INFO "Tasklet scheduled\n");
+    return 0;
+}
+
+static void __exit my_module_exit(void)
+{
+    tasklet_kill(&my_tasklet); // ensure tasklet is finished
+    printk(KERN_INFO "Module exiting\n");
+}
+
+module_init(my_module_init);
+module_exit(my_module_exit);
+MODULE_LICENSE("GPL");
+```
+
+### 3️⃣ Workqueue Example
+```c
+#include <linux/module.h>
+#include <linux/workqueue.h>
+
+static struct workqueue_struct *my_wq;
+static struct work_struct my_work;
+
+static void my_work_func(struct work_struct *work)
+{
+    printk(KERN_INFO "Workqueue executed\n");
+}
+
+static int __init my_module_init(void)
+{
+    my_wq = create_singlethread_workqueue("my_wq");
+    if (!my_wq)
+        return -ENOMEM;
+
+    INIT_WORK(&my_work, my_work_func);
+    queue_work(my_wq, &my_work); // queue work
+    printk(KERN_INFO "Work queued\n");
+
+    return 0;
+}
+
+static void __exit my_module_exit(void)
+{
+    flush_workqueue(my_wq);
+    destroy_workqueue(my_wq);
+    printk(KERN_INFO "Module exiting\n");
+}
+
+module_init(my_module_init);
+module_exit(my_module_exit);
+MODULE_LICENSE("GPL");
+```
+# Note
+
+```mermaid
+flowchart TD
+    A["Hardware Interrupt"] --> B["ISR (Top Half)"]
+    B --> C["SoftIRQ Scheduled"]
+    C --> D["SoftIRQ Handler\n(Interrupt Context, Cannot Sleep)"]
+    D --> E["Tasklet Scheduled?"]
+    E -- Yes --> F["Tasklet Executes\n(Interrupt Context, Cannot Sleep)"]
+    E -- No --> G["Workqueue Scheduled?"]
+    F --> G
+    G -- Yes --> H["Workqueue Executes\n(Process Context, Can Sleep)"]
+    G -- No --> I["Deferred Work Done"]
+    H --> I
+
+```
